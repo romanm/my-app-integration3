@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-jdbc="http://www.springframework.org/schema/integration/jdbc"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/integration/jdbc http://www.springframework.org/schema/integration/jdbc/spring-integration-jdbc.xsd
+		http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+		">
+
+	<bean id="paramF20Tables"
+		class="org.springframework.integration.jdbc.ExpressionEvaluatingSqlParameterSourceFactory">
+		<property name="parameterExpressions">
+			<map>
+				<entry key="min_month" value="payload.min_month" />
+				<entry key="max_month" value="payload.max_month" />
+				<entry key="year" value="payload.year" />
+			</map>
+		</property>
+	</bean>
+	
+	<int:channel id="findF20T3220RequestChannel" />
+	<int:channel id="findF20T3220ReplyChannel" />
+	<int-jdbc:outbound-gateway 
+	request-channel="findF20T3220RequestChannel" reply-channel="findF20T3220ReplyChannel" 
+		query="${sql.hol1Eih.f20t3220.year_month}"
+		row-mapper="mapObjResultMapper"
+		reply-sql-parameter-source-factory="paramF20Tables"
+		data-source="dataSourceHol1Eih" max-rows-per-poll="100">
+	</int-jdbc:outbound-gateway>
+
+
+	<int:gateway id="form20Service" service-interface="my.app.service.Form20Service">
+		<int:method name="table3220" request-channel="findF20T3220RequestChannel"
+			reply-channel="findF20T3220ReplyChannel" request-timeout="5000"
+			reply-timeout="5000" />
+	</int:gateway>
+
+	<bean id="dataSourceHol1Eih" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close"  primary="true">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="${config.hol1.urlMySqlDb}" />
+		<!-- 
+		<property name="url" value="jdbc:mysql://localhost/hol?useUnicode=true&amp;characterEncoding=utf-8" />
+		 -->
+		<property name="username" value="hol" />
+		<property name="password" value="${config.hol1.urlMySqlDb.password}" />
+	</bean>
+
+	<bean id="hol1EihParamJdbcTemplate" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
+		<constructor-arg ref="dataSourceHol1Eih"/>
+	</bean>
+	<bean id="hol1EihJdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<constructor-arg ref="dataSourceHol1Eih"/>
+	</bean>
+
+	
+</beans>

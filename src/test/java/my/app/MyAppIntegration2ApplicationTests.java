@@ -1,14 +1,20 @@
 package my.app;
 
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import my.app.domain.Gender;
 import my.app.domain.Person;
@@ -59,19 +65,27 @@ public class MyAppIntegration2ApplicationTests {
 				  + "\n=========================================================" );
 		
 		//------------------------------------
+		System.out.println("--------------findPersonByMontAndDay-----------------------");
+		Map<String, Object> sm = new HashMap<>();
+		sm.put("month", 12);
+		sm.put("day", 26);
+		List<Map<String, Object>> findPersonByMontAndDay = personService.findPersonByMontAndDay(sm);
+		System.out.println(findPersonByMontAndDay.size());
+		System.out.println(findPersonByMontAndDay);
+		System.out.println("--------------findPersonByMontAndDay-----------------------END");
 		List<Person> findPersonByName = personService.findPersonByName("KOSTYA");
 		for(Person person:findPersonByName) {
 			printlnSysOut(person);
 		}
-		//------------------------------------
-		System.out.println("--------------getPersonById-----------------------");
-		Person person = personService.getPersonById(12);
-		printlnSysOut(person);
-		System.out.println("--------------updatePerson-----------------------");
-		person.setName("from xml");
-		personService.updatePerson(person);
-		printlnSysOut(person);
-		System.out.println("--------------updatePerson-----------------------END");
+//		//------------------------------------
+//		System.out.println("--------------getPersonById-----------------------");
+//		Person person = personService.getPersonById(12);
+//		printlnSysOut(person);
+//		System.out.println("--------------updatePerson-----------------------");
+//		person.setName("from xml");
+//		personService.updatePerson(person);
+//		printlnSysOut(person);
+//		System.out.println("--------------updatePerson-----------------------END");
 		//------------------------------------
 		insertPersonRecord(personService);
 		//------------------------------------
@@ -90,6 +104,7 @@ public class MyAppIntegration2ApplicationTests {
 		System.out.println(sqlSamplePersonInsert);
 		System.out.print("Enter you choice: ");
 		while (true) {
+			if(true) break;
 			final String input = scanner.nextLine();
 			if("q".equals(input.trim())) {
 				break;

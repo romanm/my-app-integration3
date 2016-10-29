@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:int="http://www.springframework.org/schema/integration"
 	xmlns:int-jdbc="http://www.springframework.org/schema/integration/jdbc"
 	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
-	xsi:schemaLocation="http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
 		http://www.springframework.org/schema/integration/jdbc http://www.springframework.org/schema/integration/jdbc/spring-integration-jdbc.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+		http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+		">
 
-	<bean id="datasource" class="org.apache.commons.dbcp.BasicDataSource"
-		destroy-method="close" primary="true">
+	<bean id="datasourceH2DbSi1" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
 		<property name="driverClassName" value="org.h2.Driver" />
 		<property name="url"
 			value="jdbc:h2:tcp://localhost/h2-db-si-1/h2-db-si-1" />
@@ -20,30 +23,8 @@
 	<!-- See also: http://static.springsource.org/spring-integration/reference/htmlsingle/#gateway-proxy 
 		http://www.eaipatterns.com/MessagingGateway.html -->
 
-	<int:channel id="createPersonRequestChannel" />
-	<int:channel id="createPersonReplyChannel" />
-	<int:channel id="findPersonRequestChannel" />
-	<int:channel id="findPersonReplyChannel" />
-	<int:channel id="getPersonRequestChannel" />
-	<int:channel id="getPersonReplyChannel" />
 	<int:channel id="updatePersonRequestChannel" />
 	<int:channel id="updatePersonReplyChannel" />
-
-	<int:gateway id="personService" service-interface="my.app.service.PersonService">
-	<int:method name="createPerson" request-channel="createPersonRequestChannel"
-		reply-channel="createPersonReplyChannel" request-timeout="5000"
-		reply-timeout="5000" />
-	<int:method name="updatePerson" request-channel="updatePersonRequestChannel"
-		reply-channel="updatePersonReplyChannel" request-timeout="5000"
-		reply-timeout="5000" />
-	<int:method name="getPersonById" request-channel="getPersonRequestChannel"
-		reply-channel="getPersonReplyChannel" request-timeout="5000"
-		reply-timeout="5000" />
-	<int:method name="findPersonByName" request-channel="findPersonRequestChannel"
-		reply-channel="findPersonReplyChannel" request-timeout="5000"
-		reply-timeout="5000" />
-</int:gateway>
-
 	<int-jdbc:outbound-gateway 
 	request-channel="updatePersonRequestChannel" reply-channel="updatePersonReplyChannel"
 		update="${sql.sample.person.update}"
@@ -51,36 +32,80 @@
 		 max-rows-per-poll="1"
 		request-sql-parameter-source-factory="parameterPersonUpdate"
 		reply-sql-parameter-source-factory="replyUpdateSource" row-mapper="personResultMapper"
-		data-source="datasource" >
+		data-source="datasourceH2DbSi1" >
 	</int-jdbc:outbound-gateway>
-
+	
+	<int:channel id="getPersonRequestChannel" />
+	<int:channel id="getPersonReplyChannel" />
 	<int-jdbc:outbound-gateway 
 	request-channel="getPersonRequestChannel" reply-channel="getPersonReplyChannel" 
 		update="UPDATE DUMMY SET DUMMY_VALUE='test'" 
 		query="${sql.sample.person.by.payload.id}"
 		row-mapper="personResultMapper"
-		data-source="datasource" max-rows-per-poll="1">
+		data-source="datasourceH2DbSi1" max-rows-per-poll="1">
 	</int-jdbc:outbound-gateway>
-
+	
+	<int:channel id="findPersonRequestChannel" />
+	<int:channel id="findPersonReplyChannel" />
+	<!-- 
+		update="UPDATE DUMMY SET DUMMY_VALUE='test'" 
+	 -->
 	<int-jdbc:outbound-gateway 
 	request-channel="findPersonRequestChannel" reply-channel="findPersonReplyChannel" 
-		update="UPDATE DUMMY SET DUMMY_VALUE='test'" 
+		update="" 
 		query="select * from Person where lower(name)=lower(:payload)"
 		row-mapper="personResultMapper"
-		data-source="datasource" max-rows-per-poll="100">
+		data-source="datasourceH2DbSi1" max-rows-per-poll="100">
 	</int-jdbc:outbound-gateway>
 
+	<int:channel id="findPersonMontAndDayRequestChannel" />
+	<int:channel id="findPersonMontAndDayReplyChannel" />
+	<int-jdbc:outbound-gateway 
+	request-channel="findPersonMontAndDayRequestChannel" reply-channel="findPersonMontAndDayReplyChannel" 
+		query="${sql.sample.person.by.montAndDay}"
+		row-mapper="mapObjResultMapper"
+		reply-sql-parameter-source-factory="paramPersonMontAndDay"
+		data-source="datasourceH2DbSi1" max-rows-per-poll="100">
+	</int-jdbc:outbound-gateway>
+
+	<int:channel id="createPersonRequestChannel" />
+	<int:channel id="createPersonReplyChannel" />
 	<int-jdbc:outbound-gateway 
 	request-channel="createPersonRequestChannel" reply-channel="createPersonReplyChannel"
 		update="${sql.sample.person.insert}"
 		query="${sql.sample.person.by.payload.id}"
 		request-sql-parameter-source-factory="parameterPersonInsert"
 		reply-sql-parameter-source-factory="replySource" row-mapper="personResultMapper"
-		data-source="datasource" keys-generated="true" />
+		data-source="datasourceH2DbSi1" keys-generated="true" />
 
 
-	<bean id="personResultMapper" class="my.app.domain.PersonMapper" />
+	<int:gateway id="personService" service-interface="my.app.service.PersonService">
+		<int:method name="createPerson" request-channel="createPersonRequestChannel"
+			reply-channel="createPersonReplyChannel" request-timeout="5000"
+			reply-timeout="5000" />
+		<int:method name="updatePerson" request-channel="updatePersonRequestChannel"
+			reply-channel="updatePersonReplyChannel" request-timeout="5000"
+			reply-timeout="5000" />
+		<int:method name="getPersonById" request-channel="getPersonRequestChannel"
+			reply-channel="getPersonReplyChannel" request-timeout="5000"
+			reply-timeout="5000" />
+		<int:method name="findPersonByName" request-channel="findPersonRequestChannel"
+			reply-channel="findPersonReplyChannel" request-timeout="5000"
+			reply-timeout="5000" />
+		<int:method name="findPersonByMontAndDay" request-channel="findPersonMontAndDayRequestChannel"
+			reply-channel="findPersonMontAndDayReplyChannel" request-timeout="5000"
+			reply-timeout="5000" />
+	</int:gateway>
 
+	<bean id="paramPersonMontAndDay"
+		class="org.springframework.integration.jdbc.ExpressionEvaluatingSqlParameterSourceFactory">
+		<property name="parameterExpressions">
+			<map>
+				<entry key="month" value="payload.month" />
+				<entry key="day" value="payload.day" />
+			</map>
+		</property>
+	</bean>
 	<bean id="replyUpdateSource"
 		class="org.springframework.integration.jdbc.ExpressionEvaluatingSqlParameterSourceFactory">
 		<property name="parameterExpressions">
@@ -120,5 +145,8 @@
 			</map>
 		</property>
 	</bean>
+
+
+	<bean id="personResultMapper" class="my.app.domain.PersonMapper" />
 
 </beans>

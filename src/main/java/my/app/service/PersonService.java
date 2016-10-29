@@ -1,6 +1,7 @@
 package my.app.service;
 
 import java.util.List;
+import java.util.Map;
 
 import my.app.domain.Person;
 
@@ -43,5 +44,7 @@ public interface PersonService {
 	 * @return the matching {@link Person} record
 	 */
 	List<Person> findPersonByName(String name);
+
+	List<Map<String, Object>> findPersonByMontAndDay(Map<String, Object> seekParameters);
 
 }
